@@ -1,0 +1,170 @@
+from scipy import misc
+import cmath as cm
+import numpy as np
+
+"""
+    numpy - For constructing polynomials from coefficient representation
+    scipy - For taking derivative of function for Newton's method
+    cmath - "Complex Math". Used to take square root of negative numbers, i.e., getting complex roots 
+"""
+
+
+# Get Degree of Polynomial
+deg = len(coeff) - 1
+
+
+# Newton's Method
+def newton(f, x, tol, N):
+    """
+    Parameters:
+        f - the function to perform Newton's method on
+        x - initial guess
+        TOL - tolerance level
+        N - how many iterations before we give up
+    """
+    
+    i = 0
+    
+    while True:
+        if misc.derivative(f, x) == 0:
+            print("Newton's Method failed because of divide by zero error")
+            break
+        x1 = x - f(x) / misc.derivative(f, x)
+        t = abs(x1 - x)
+        
+        #Check if x1 and x are close
+        if t < tol:
+
+            return x
+            break
+        if i > N:
+            print("Newton failed. Moving to Muller.")
+            break
+        x = x1
+        i += 1
+    
+
+# Synthetic Division
+def syndiv(deg, coeff, root):
+    #Create quotient array
+    quotient = [coeff[0]]
+    for i in range(1, deg):
+        y = root*quotient[i-1] + coeff[i]
+        quotient.append(y)
+    return quotient
+
+
+# Polynomial Evaluation by Horner
+def horner(x0, poly, N):
+    y = poly[0]
+  
+    # Evaluate value of polynomial using Horner's method
+    for i in range(1, N):
+        y = y*x0 + poly[i]
+    return y
+
+
+
+# Muller's Method
+def muller(f, x0, x1, x2, tol, N):
+   
+    i=0
+    
+    while (True):   
+        
+        f0 = f(x0)
+        f1 = f(x1)
+        f2 = f(x2)
+    
+        h0 = x1 - x0
+        h1 = x2 - x1
+    
+        d0 = (f1 - f0)/h0
+        d1 = (f2 - f1)/h1
+    
+        a = (d1-d0)/(h1+h0)
+        b = a*h1+d1
+        c = f2
+    
+        d = cm.sqrt(b**2 - 4*a*c)
+        
+        if abs(b + d) > abs(b - d):
+            e = b + d
+        else:
+            e = b - d
+          
+        p = x2 -2*c/e
+        
+        if abs(p - x2) < tol:
+            return p
+            break
+        if i > N:
+            print("Muller: Number of iterations exceeded without convergence")
+            break
+        
+        x0 = x1
+        x1 = x2
+        x2 = p
+        
+        i += 1
+       
+  def deflation(coeff, x0, tol, N):
+    
+    # Initialize array of roots
+    roots = []
+    newcoeff = coeff
+    f = np.poly1d(newcoeff)
+    deg = len(newcoeff) - 1
+    
+    i = 0
+    
+    while (True):
+        
+        try:
+            # Do Newton
+            p = newton(f, x0, tol, N)
+        
+            # Put Newton root in array
+            roots.append(p)
+    
+            # Synthetically divide by (x - root) to obtain quotient poly 
+            newcoeff = syndiv(deg, newcoeff, p)
+        
+            # Get new degree of polynomial
+            deg = len(newcoeff) - 1
+        
+            # Define f
+            f = np.poly1d(newcoeff)
+        
+            if deg == 0:
+                print("Roots:")
+                return roots
+                break
+            
+            i += 1
+        
+        except:
+            p0 = x0 - 1
+            p1 = x0 + 1
+            p2 = x0
+            
+            while (True):
+                # Do Muller
+                p = muller(f, p0, p1, p2, tol, N)
+                
+                # Put Muller Roots in Array
+                roots.append(p)
+                
+                newcoeff = syndiv(deg, newcoeff, p)
+                
+                deg = len(newcoeff) - 1
+                
+                # Define f
+                f = np.poly1d(newcoeff)
+                
+                if deg == 0:
+                    # Remove none types
+                    cleanroots = [i for i in roots if i is not None]
+                    print("Roots")
+                    return cleanroots
+                    break
