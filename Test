@@ -1,0 +1,9 @@
+# Test Polynomial
+coeff = [1, -3, 1, 1, 1]
+
+deflation(coeff, 1.1, 1E-10, 1E3)
+
+# Application Problem
+
+coeff1 = [1, 70.3, 1647.39, -18656.72]
+deflation(coeff1, 1, 1E-10, 1E3)
