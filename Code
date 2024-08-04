@@ -1,175 +1,104 @@
-"""
-@Mike
-11/15/21
-"""
-
+import numpy as np
 from scipy import misc
 import cmath as cm
-import numpy as np
 
 """
+Modules:
     numpy - For constructing polynomials from coefficient representation
-    scipy - For taking derivative of function for Newton's method
-    cmath - "Complex Math". Used to take square root of negative numbers, i.e., getting complex roots 
+    scipy - For taking derivatives of functions (used in Newton's method)
+    cmath - "Complex Math". Used to take square roots of negative numbers, i.e., finding complex roots 
 """
-
 
 # Get Degree of Polynomial
 deg = len(coeff) - 1
 
-
 # Newton's Method
-def newton(f, x, tol, N):
+def newton(f, x, tol, max_iter):
     """
     Parameters:
         f - the function to perform Newton's method on
         x - initial guess
-        TOL - tolerance level
-        N - how many iterations before we give up
+        tol - tolerance level
+        max_iter - maximum number of iterations before stopping
     """
-    
-    i = 0
-    
-    while True:
-        if misc.derivative(f, x) == 0:
-            print("Newton's Method failed because of divide by zero error")
-            break
-        x1 = x - f(x) / misc.derivative(f, x)
-        t = abs(x1 - x)
+    for i in range(max_iter):
+        derivative = misc.derivative(f, x)
+        if derivative == 0:
+            print("Newton's Method failed: divide by zero error")
+            return None
         
-        #Check if x1 and x are close
-        if t < tol:
-
-            return x
-            break
-        if i > N:
-            print("Newton failed. Moving to Muller.")
-            break
+        x1 = x - f(x) / derivative
+        if abs(x1 - x) < tol:
+            return x1
         x = x1
-        i += 1
     
+    print("Newton's Method did not converge within the maximum number of iterations.")
+    return None
 
 # Synthetic Division
 def syndiv(deg, coeff, root):
-    #Create quotient array
     quotient = [coeff[0]]
     for i in range(1, deg):
-        y = root*quotient[i-1] + coeff[i]
+        y = root * quotient[-1] + coeff[i]
         quotient.append(y)
     return quotient
-
 
 # Polynomial Evaluation by Horner
 def horner(x0, poly, N):
     y = poly[0]
-  
-    # Evaluate value of polynomial using Horner's method
     for i in range(1, N):
-        y = y*x0 + poly[i]
+        y = y * x0 + poly[i]
     return y
 
-
-
 # Muller's Method
-def muller(f, x0, x1, x2, tol, N):
-   
-    i=0
-    
-    while (True):   
+def muller(f, x0, x1, x2, tol, max_iter):
+    for i in range(max_iter):
+        f0, f1, f2 = f(x0), f(x1), f(x2)
+        h0, h1 = x1 - x0, x2 - x1
+        d0, d1 = (f1 - f0) / h0, (f2 - f1) / h1
         
-        f0 = f(x0)
-        f1 = f(x1)
-        f2 = f(x2)
-    
-        h0 = x1 - x0
-        h1 = x2 - x1
-    
-        d0 = (f1 - f0)/h0
-        d1 = (f2 - f1)/h1
-    
-        a = (d1-d0)/(h1+h0)
-        b = a*h1+d1
+        a = (d1 - d0) / (h1 + h0)
+        b = a * h1 + d1
         c = f2
-    
-        d = cm.sqrt(b**2 - 4*a*c)
-        
-        if abs(b + d) > abs(b - d):
-            e = b + d
-        else:
-            e = b - d
-          
-        p = x2 -2*c/e
+        d = cm.sqrt(b**2 - 4 * a * c)
+        e = b + d if abs(b + d) > abs(b - d) else b - d
+        p = x2 - 2 * c / e
         
         if abs(p - x2) < tol:
             return p
-            break
-        if i > N:
-            print("Muller: Number of iterations exceeded without convergence")
-            break
         
-        x0 = x1
-        x1 = x2
-        x2 = p
-        
-        i += 1
-       
-  def deflation(coeff, x0, tol, N):
+        x0, x1, x2 = x1, x2, p
     
-    # Initialize array of roots
+    print("Muller's Method did not converge within the maximum number of iterations.")
+    return None
+
+# Polynomial Deflation
+def deflation(coeff, x0, tol, max_iter):
     roots = []
-    newcoeff = coeff
-    f = np.poly1d(newcoeff)
-    deg = len(newcoeff) - 1
+    new_coeff = coeff
+    deg = len(new_coeff) - 1
     
-    i = 0
-    
-    while (True):
-        
+    while deg > 0:
         try:
-            # Do Newton
-            p = newton(f, x0, tol, N)
-        
-            # Put Newton root in array
-            roots.append(p)
-    
-            # Synthetically divide by (x - root) to obtain quotient poly 
-            newcoeff = syndiv(deg, newcoeff, p)
-        
-            # Get new degree of polynomial
-            deg = len(newcoeff) - 1
-        
-            # Define f
-            f = np.poly1d(newcoeff)
-        
-            if deg == 0:
-                print("Roots:")
-                return roots
-                break
-            
-            i += 1
-        
-        except:
-            p0 = x0 - 1
-            p1 = x0 + 1
-            p2 = x0
-            
-            while (True):
-                # Do Muller
-                p = muller(f, p0, p1, p2, tol, N)
-                
-                # Put Muller Roots in Array
+            f = np.poly1d(new_coeff)
+            p = newton(f, x0, tol, max_iter)
+            if p is not None:
                 roots.append(p)
-                
-                newcoeff = syndiv(deg, newcoeff, p)
-                
-                deg = len(newcoeff) - 1
-                
-                # Define f
-                f = np.poly1d(newcoeff)
-                
-                if deg == 0:
-                    # Remove none types
-                    cleanroots = [i for i in roots if i is not None]
-                    print("Roots")
-                    return cleanroots
+                new_coeff = syndiv(deg, new_coeff, p)
+                deg -= 1
+            else:
+                raise ValueError("Switching to Muller's Method")
+        except:
+            p0, p1, p2 = x0 - 1, x0 + 1, x0
+            while deg > 0:
+                p = muller(np.poly1d(new_coeff), p0, p1, p2, tol, max_iter)
+                if p is not None:
+                    roots.append(p)
+                    new_coeff = syndiv(deg, new_coeff, p)
+                    deg -= 1
+                else:
                     break
+
+    clean_roots = [root for root in roots if root is not None]
+    print("Roots:", clean_roots)
+    return clean_roots
